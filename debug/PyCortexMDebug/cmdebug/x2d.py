@@ -25,7 +25,7 @@ class ObjectDict(dict):
         if name in self:
             return self[name]
         else:
-            raise AttributeError("No such attribute: " + name)
+            raise AttributeError(f"No such attribute: {name}")
 
 
 try:  # pragma no cover
@@ -103,7 +103,7 @@ class _DictSAXHandler(object):
     def _attrs_to_dict(self, attrs):
         if isinstance(attrs, dict):
             return attrs
-        return self.dict_constructor(zip(attrs[0::2], attrs[1::2]))
+        return self.dict_constructor(zip(attrs[::2], attrs[1::2]))
 
     def startNamespaceDecl(self, prefix, uri):
         self.namespace_declarations[prefix or ""] = uri
@@ -188,10 +188,7 @@ class _DictSAXHandler(object):
             else:
                 item[key] = [value, data]
         except KeyError:
-            if self._should_force_list(key, data):
-                item[key] = [data]
-            else:
-                item[key] = data
+            item[key] = [data] if self._should_force_list(key, data) else data
         return item
 
     def _should_force_list(self, key, value):
@@ -399,9 +396,7 @@ def _process_namespace(name, namespaces, ns_sep=":", attr_prefix="@"):
     else:
         ns_res = namespaces.get(ns.strip(attr_prefix))
         name = (
-            "{}{}{}{}".format(
-                attr_prefix if ns.startswith(attr_prefix) else "", ns_res, ns_sep, name
-            )
+            f'{attr_prefix if ns.startswith(attr_prefix) else ""}{ns_res}{ns_sep}{name}'
             if ns_res
             else name
         )
@@ -430,10 +425,8 @@ def _emit(
         if result is None:
             return
         key, value = result
-    if (
-        not hasattr(value, "__iter__")
-        or isinstance(value, _basestring)
-        or isinstance(value, dict)
+    if not hasattr(value, "__iter__") or isinstance(
+        value, (_basestring, dict)
     ):
         value = [value]
     for index, v in enumerate(value):
@@ -442,10 +435,7 @@ def _emit(
         if v is None:
             v = ObjectDict()
         elif isinstance(v, bool):
-            if v:
-                v = _unicode("true")
-            else:
-                v = _unicode("false")
+            v = _unicode("true") if v else _unicode("false")
         elif not isinstance(v, dict):
             if (
                 expand_iter
@@ -470,7 +460,7 @@ def _emit(
                 )
                 if ik == "@xmlns" and isinstance(iv, dict):
                     for k, v in iv.items():
-                        attr = "xmlns{}".format(":{}".format(k) if k else "")
+                        attr = f'xmlns{f":{k}" if k else ""}'
                         attrs[attr] = _unicode(v)
                     continue
                 if not isinstance(iv, _unicode):

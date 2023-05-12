@@ -44,7 +44,7 @@ class Main(App):
         )
 
     def check(self):
-        self.logger.info(f"Checking Option Bytes")
+        self.logger.info("Checking Option Bytes")
 
         # OpenOCD
         openocd = OpenOCDProgrammer(
@@ -53,14 +53,10 @@ class Main(App):
             self.args.serial,
         )
 
-        return_code = 1
-        if openocd.option_bytes_validate(self.args.ob_path):
-            return_code = 0
-
-        return return_code
+        return 0 if openocd.option_bytes_validate(self.args.ob_path) else 1
 
     def set(self):
-        self.logger.info(f"Setting Option Bytes")
+        self.logger.info("Setting Option Bytes")
 
         # OpenOCD
         openocd = OpenOCDProgrammer(
@@ -69,11 +65,7 @@ class Main(App):
             self.args.serial,
         )
 
-        return_code = 1
-        if openocd.option_bytes_set(self.args.ob_path):
-            return_code = 0
-
-        return return_code
+        return 0 if openocd.option_bytes_set(self.args.ob_path) else 1
 
 
 if __name__ == "__main__":

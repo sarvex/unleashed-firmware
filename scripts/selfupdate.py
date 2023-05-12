@@ -54,7 +54,7 @@ class Main(App):
                     f"update install {flipper_update_path}/{manifest_name}\r"
                 )
                 result = storage.read.until(storage.CLI_EOL)
-                if not b"Verifying" in result:
+                if b"Verifying" not in result:
                     self.logger.error(f"Unexpected response: {result.decode('ascii')}")
                     return 3
                 result = storage.read.until(storage.CLI_EOL)

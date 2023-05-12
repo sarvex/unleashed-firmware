@@ -96,7 +96,7 @@ class Main(App):
             pass
 
     def copy(self) -> int:
-        self._dist_components: dict[str, str] = dict()
+        self._dist_components: dict[str, str] = {}
         self.projects: dict[str, ProjectDir] = dict(
             map(
                 lambda pd: (pd.project, pd),
@@ -162,7 +162,7 @@ class Main(App):
 
     def bundle_sdk(self):
         self.logger.info("Bundling SDK")
-        components_paths = dict()
+        components_paths = {}
 
         sdk_components_keys = (
             "full.bin",

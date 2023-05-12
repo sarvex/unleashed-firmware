@@ -39,7 +39,7 @@ class Main(App):
                 continue
             if isinstance(v, str):
                 v = v.strip('"')
-            meta[self.args.project + "_" + k] = v
+            meta[f"{self.args.project}_{k}"] = v
 
         print(json.dumps(meta, indent=4))
         return 0
@@ -49,7 +49,7 @@ class Main(App):
         for path in self.args.input[0]:
             with open(path, mode="r") as file:
                 dict = json.loads(file.read())
-                full.update(dict)
+                full |= dict
 
         print(json.dumps(full, indent=4))
         return 0

@@ -110,108 +110,105 @@ class Main(App):
 
     def icons(self):
         self.logger.debug("Converting icons")
-        icons_c = open(
+        with open(
             os.path.join(self.args.output_directory, f"{self.args.filename}.c"),
             "w",
             newline="\n",
-        )
-        icons_c.write(
-            ICONS_TEMPLATE_C_HEADER.format(assets_filename=self.args.filename)
-        )
-        icons = []
-        # Traverse icons tree, append image data to source file
-        for dirpath, dirnames, filenames in os.walk(self.args.input_directory):
-            self.logger.debug(f"Processing directory {dirpath}")
-            dirnames.sort()
-            filenames.sort()
-            if not filenames:
-                continue
-            if "frame_rate" in filenames:
-                self.logger.debug(f"Folder contains animation")
-                icon_name = "A_" + os.path.split(dirpath)[1].replace("-", "_")
-                width = height = None
-                frame_count = 0
-                frame_rate = 0
-                frame_names = []
-                for filename in sorted(filenames):
-                    fullfilename = os.path.join(dirpath, filename)
-                    if filename == "frame_rate":
-                        frame_rate = int(open(fullfilename, "r").read().strip())
-                        continue
-                    elif not self._iconIsSupported(filename):
-                        continue
-                    self.logger.debug(f"Processing animation frame {filename}")
-                    temp_width, temp_height, data = self._icon2header(fullfilename)
-                    if width is None:
-                        width = temp_width
-                    if height is None:
-                        height = temp_height
-                    assert width == temp_width
-                    assert height == temp_height
-                    frame_name = f"_{icon_name}_{frame_count}"
-                    frame_names.append(frame_name)
-                    icons_c.write(
-                        ICONS_TEMPLATE_C_FRAME.format(name=frame_name, data=data)
-                    )
-                    frame_count += 1
-                assert frame_rate > 0
-                assert frame_count > 0
-                icons_c.write(
-                    ICONS_TEMPLATE_C_DATA.format(
-                        name=f"_{icon_name}", data=f'{{{",".join(frame_names)}}}'
-                    )
-                )
-                icons_c.write("\n")
-                icons.append((icon_name, width, height, frame_rate, frame_count))
-            else:
-                # process icons
-                for filename in filenames:
-                    if not self._iconIsSupported(filename):
-                        continue
-                    self.logger.debug(f"Processing icon {filename}")
-                    icon_name = "I_" + "_".join(filename.split(".")[:-1]).replace(
-                        "-", "_"
-                    )
-                    fullfilename = os.path.join(dirpath, filename)
-                    width, height, data = self._icon2header(fullfilename)
-                    frame_name = f"_{icon_name}_0"
-                    icons_c.write(
-                        ICONS_TEMPLATE_C_FRAME.format(name=frame_name, data=data)
-                    )
+        ) as icons_c:
+            icons_c.write(
+                ICONS_TEMPLATE_C_HEADER.format(assets_filename=self.args.filename)
+            )
+            icons = []
+                # Traverse icons tree, append image data to source file
+            for dirpath, dirnames, filenames in os.walk(self.args.input_directory):
+                self.logger.debug(f"Processing directory {dirpath}")
+                dirnames.sort()
+                filenames.sort()
+                if not filenames:
+                    continue
+                if "frame_rate" in filenames:
+                    self.logger.debug("Folder contains animation")
+                    icon_name = "A_" + os.path.split(dirpath)[1].replace("-", "_")
+                    width = height = None
+                    frame_count = 0
+                    frame_rate = 0
+                    frame_names = []
+                    for filename in sorted(filenames):
+                        fullfilename = os.path.join(dirpath, filename)
+                        if filename == "frame_rate":
+                            frame_rate = int(open(fullfilename, "r").read().strip())
+                            continue
+                        elif not self._iconIsSupported(filename):
+                            continue
+                        self.logger.debug(f"Processing animation frame {filename}")
+                        temp_width, temp_height, data = self._icon2header(fullfilename)
+                        if width is None:
+                            width = temp_width
+                        if height is None:
+                            height = temp_height
+                        assert width == temp_width
+                        assert height == temp_height
+                        frame_name = f"_{icon_name}_{frame_count}"
+                        frame_names.append(frame_name)
+                        icons_c.write(
+                            ICONS_TEMPLATE_C_FRAME.format(name=frame_name, data=data)
+                        )
+                        frame_count += 1
+                    assert frame_rate > 0
+                    assert frame_count > 0
                     icons_c.write(
                         ICONS_TEMPLATE_C_DATA.format(
-                            name=f"_{icon_name}", data=f"{{{frame_name}}}"
+                            name=f"_{icon_name}", data=f'{{{",".join(frame_names)}}}'
                         )
                     )
                     icons_c.write("\n")
-                    icons.append((icon_name, width, height, 0, 1))
-        # Create array of images:
-        self.logger.debug(f"Finalizing source file")
-        for name, width, height, frame_rate, frame_count in icons:
-            icons_c.write(
-                ICONS_TEMPLATE_C_ICONS.format(
-                    name=name,
-                    width=width,
-                    height=height,
-                    frame_rate=frame_rate,
-                    frame_count=frame_count,
+                    icons.append((icon_name, width, height, frame_rate, frame_count))
+                else:
+                    # process icons
+                    for filename in filenames:
+                        if not self._iconIsSupported(filename):
+                            continue
+                        self.logger.debug(f"Processing icon {filename}")
+                        icon_name = "I_" + "_".join(filename.split(".")[:-1]).replace(
+                            "-", "_"
+                        )
+                        fullfilename = os.path.join(dirpath, filename)
+                        width, height, data = self._icon2header(fullfilename)
+                        frame_name = f"_{icon_name}_0"
+                        icons_c.write(
+                            ICONS_TEMPLATE_C_FRAME.format(name=frame_name, data=data)
+                        )
+                        icons_c.write(
+                            ICONS_TEMPLATE_C_DATA.format(
+                                name=f"_{icon_name}", data=f"{{{frame_name}}}"
+                            )
+                        )
+                        icons_c.write("\n")
+                        icons.append((icon_name, width, height, 0, 1))
+                # Create array of images:
+            self.logger.debug("Finalizing source file")
+            for name, width, height, frame_rate, frame_count in icons:
+                icons_c.write(
+                    ICONS_TEMPLATE_C_ICONS.format(
+                        name=name,
+                        width=width,
+                        height=height,
+                        frame_rate=frame_rate,
+                        frame_count=frame_count,
+                    )
                 )
-            )
-        icons_c.write("\n")
-        icons_c.close()
-
+            icons_c.write("\n")
         # Create Public Header
-        self.logger.debug(f"Creating header")
-        icons_h = open(
+        self.logger.debug("Creating header")
+        with open(
             os.path.join(self.args.output_directory, f"{self.args.filename}.h"),
             "w",
             newline="\n",
-        )
-        icons_h.write(ICONS_TEMPLATE_H_HEADER)
-        for name, width, height, frame_rate, frame_count in icons:
-            icons_h.write(ICONS_TEMPLATE_H_ICON_NAME.format(name=name))
-        icons_h.close()
-        self.logger.debug(f"Done")
+        ) as icons_h:
+            icons_h.write(ICONS_TEMPLATE_H_HEADER)
+            for name, width, height, frame_rate, frame_count in icons:
+                icons_h.write(ICONS_TEMPLATE_H_ICON_NAME.format(name=name))
+        self.logger.debug("Done")
         return 0
 
     def manifest(self):
@@ -232,7 +229,7 @@ class Main(App):
         new_manifest = Manifest(self.args.timestamp)
         new_manifest.create(directory_path)
 
-        self.logger.info(f"Comparing new manifest with existing")
+        self.logger.info("Comparing new manifest with existing")
         only_in_old, changed, only_in_new = Manifest.compare(old_manifest, new_manifest)
         for record in only_in_old:
             self.logger.info(f"Only in old: {record}")
@@ -246,38 +243,38 @@ class Main(App):
         else:
             self.logger.info("Manifest is up-to-date!")
 
-        self.logger.info(f"Complete")
+        self.logger.info("Complete")
 
         return 0
 
     def copro(self):
         from flipper.assets.copro import Copro
 
-        self.logger.info(f"Bundling coprocessor binaries")
+        self.logger.info("Bundling coprocessor binaries")
         copro = Copro(self.args.mcu)
-        self.logger.info(f"Loading CUBE info")
+        self.logger.info("Loading CUBE info")
         copro.loadCubeInfo(self.args.cube_dir, self.args.cube_ver)
-        self.logger.info(f"Bundling")
+        self.logger.info("Bundling")
         copro.bundle(
             self.args.output_dir,
             self.args.stack_file,
             self.args.stack_type,
             self.args.stack_addr,
         )
-        self.logger.info(f"Complete")
+        self.logger.info("Complete")
 
         return 0
 
     def dolphin(self):
         from flipper.assets.dolphin import Dolphin
 
-        self.logger.info(f"Processing Dolphin sources")
+        self.logger.info("Processing Dolphin sources")
         dolphin = Dolphin()
-        self.logger.info(f"Loading data")
+        self.logger.info("Loading data")
         dolphin.load(self.args.input_directory)
-        self.logger.info(f"Packing")
+        self.logger.info("Packing")
         dolphin.pack(self.args.output_directory, self.args.symbol_name)
-        self.logger.info(f"Complete")
+        self.logger.info("Complete")
 
         return 0
 

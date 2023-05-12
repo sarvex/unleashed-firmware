@@ -59,7 +59,7 @@ class Main(App):
                         show_message = True
         if show_message:
             self.logger.warning(
-                f"Folders are not renamed automatically, please fix it by yourself"
+                "Folders are not renamed automatically, please fix it by yourself"
             )
 
     def _find_sources(self, folders: list):
@@ -70,7 +70,7 @@ class Main(App):
 
                 for filename in filenames:
                     ext = os.path.splitext(filename.lower())[1]
-                    if not ext in SOURCE_CODE_FILE_EXTENSIONS:
+                    if ext not in SOURCE_CODE_FILE_EXTENSIONS:
                         continue
                     output.append(os.path.join(dirpath, filename))
         return output
@@ -90,7 +90,7 @@ class Main(App):
 
         files_per_task = 69
         tasks = []
-        while len(sources) > 0:
+        while sources:
             tasks.append(args + sources[:files_per_task])
             sources = sources[files_per_task:]
 
@@ -129,7 +129,7 @@ class Main(App):
                 good.append(source)
         # Notify about errors or replace all occurrences
         if dry_run:
-            if len(bad) > 0:
+            if bad:
                 self.logger.error(f"Found {len(bad)} incorrectly named files")
                 self.logger.info(bad)
                 return False
@@ -150,17 +150,16 @@ class Main(App):
         # Check sources for unexpected execute permissions
         for source in sources:
             st = os.stat(source)
-            perms_too_many = st.st_mode & execute_permissions
-            if perms_too_many:
+            if perms_too_many := st.st_mode & execute_permissions:
                 good_perms = st.st_mode & ~perms_too_many
                 bad.append((source, oct(perms_too_many), good_perms))
             else:
                 good.append(source)
         # Notify or fix
         if dry_run:
-            if len(bad) > 0:
+            if bad:
                 self.logger.error(f"Found {len(bad)} incorrect permissions")
-                self.logger.info([record[0:2] for record in bad])
+                self.logger.info([record[:2] for record in bad])
                 return False
         else:
             for source, perms_too_many, new_perms in bad:

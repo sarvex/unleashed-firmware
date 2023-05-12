@@ -76,7 +76,7 @@ def gnu_sym_hash(name: str):
     h = 0x1505
     for c in name:
         h = (h << 5) + h + ord(c)
-    return str(hex(h))[-8:]
+    return hex(h)[-8:]
 
 
 class SdkCollector:
@@ -98,9 +98,7 @@ class SdkCollector:
 
 
 def stringify_array_dimension(size_descr):
-    if not size_descr:
-        return ""
-    return stringify_descr(size_descr)
+    return "" if not size_descr else stringify_descr(size_descr)
 
 
 def stringify_array_descr(type_descr):
@@ -146,7 +144,7 @@ def stringify_descr(type_descr):
     elif type_descr is None:
         return ""
     else:
-        raise Exception("unsupported type_descr: %s" % type_descr)
+        raise Exception(f"unsupported type_descr: {type_descr}")
 
 
 class SdkCxxVisitor:

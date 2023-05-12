@@ -44,12 +44,10 @@ class OpenOCDProgrammer(Programmer):
         self.serial: typing.Optional[str] = None
 
     def _add_file(self, params: list[str], file: str):
-        params.append("-f")
-        params.append(file)
+        params.extend(("-f", file))
 
     def _add_command(self, params: list[str], command: str):
-        params.append("-c")
-        params.append(command)
+        params.extend(("-c", command))
 
     def _add_serial(self, params: list[str], serial: str):
         self._add_command(params, f"{self.interface.serial_cmd} {serial}")
@@ -139,12 +137,11 @@ class OpenOCDProgrammer(Programmer):
 def blackmagic_find_serial(serial: str):
     import serial.tools.list_ports as list_ports
 
-    if serial and os.name == "nt":
-        if not serial.startswith("\\\\.\\"):
-            serial = f"\\\\.\\{serial}"
+    if serial and os.name == "nt" and not serial.startswith("\\\\.\\"):
+        serial = f"\\\\.\\{serial}"
 
     ports = list(list_ports.grep("blackmagic"))
-    if len(ports) == 0:
+    if not ports:
         return None
     elif len(ports) > 2:
         if serial:
@@ -156,7 +153,7 @@ def blackmagic_find_serial(serial: str):
                     ports,
                 )
             )
-            if len(ports) == 0:
+            if not ports:
                 return None
 
         if len(ports) > 2:
@@ -166,13 +163,8 @@ def blackmagic_find_serial(serial: str):
     # print("\n".join([f"{p.device} {vars(p)}" for p in ports]))
     port = sorted(ports, key=lambda p: f"{p.location}_{p.name}")[0]
 
-    if serial:
-        if (
-            serial != port.serial_number
-            and serial != port.name
-            and serial != port.device
-        ):
-            return None
+    if serial and serial not in [port.serial_number, port.name, port.device]:
+        return None
 
     if os.name == "nt":
         port.device = f"\\\\.\\{port.device}"
@@ -191,17 +183,12 @@ def blackmagic_find_networked(serial: str):
         serial = "blackmagic.local"
 
     # remove the tcp: prefix if it's there
-    if serial.startswith("tcp:"):
-        serial = serial[4:]
-
+    serial = serial.removeprefix("tcp:")
     # remove the port if it's there
     if ":" in serial:
         serial = serial.split(":")[0]
 
-    if not (probe := _resolve_hostname(serial)):
-        return None
-
-    return f"tcp:{probe}:2345"
+    return f"tcp:{probe}:2345" if (probe := _resolve_hostname(serial)) else None
 
 
 class BlackmagicProgrammer(Programmer):
@@ -216,8 +203,7 @@ class BlackmagicProgrammer(Programmer):
         self.port: typing.Optional[str] = None
 
     def _add_command(self, params: list[str], command: str):
-        params.append("-ex")
-        params.append(command)
+        params.extend(("-ex", command))
 
     def _valid_ip(self, address):
         try:
@@ -235,9 +221,8 @@ class BlackmagicProgrammer(Programmer):
             self.port = serial
 
     def flash(self, bin: str) -> bool:
-        if not self.port:
-            if not self.probe():
-                return False
+        if not self.port and not self.probe():
+            return False
 
         # We can convert .bin to .elf with objcopy:
         # arm-none-eabi-objcopy -I binary -O elf32-littlearm --change-section-address=.data=0x8000000 -B arm -S app.bin app.elf
@@ -412,15 +397,15 @@ class Main(App):
         if self.args.interface:
             i_name = self.args.interface
             interfaces = [p for p in programmers if p.get_name() == i_name]
-            if len(interfaces) == 0:
+            if not interfaces:
                 interfaces = [p for p in network_programmers if p.get_name() == i_name]
         else:
-            self.logger.info(f"Probing for interfaces...")
+            self.logger.info("Probing for interfaces...")
             interfaces = self._search_interface(self.args.serial)
 
             if len(interfaces) == 0:
                 # Probe network blackmagic
-                self.logger.info(f"Probing for network interfaces...")
+                self.logger.info("Probing for network interfaces...")
                 interfaces = self._search_network_interface(self.args.serial)
 
             if len(interfaces) == 0:

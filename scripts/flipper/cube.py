@@ -14,7 +14,7 @@ class CubeProgrammer:
         if "port" in config and config["port"]:
             connect.append(f"port={config['port']}")
         else:
-            connect.append(f"port=swd")
+            connect.append("port=swd")
         if "serial" in config and config["serial"]:
             connect.append(f"sn={config['serial']}")
         self.params.append("-c " + " ".join(connect))
@@ -50,13 +50,13 @@ class CubeProgrammer:
         ob_correct = True
         for line in output.split("\n"):
             line = line.strip()
-            if not ":" in line:
+            if ":" not in line:
                 self.logger.debug(f"Skipping line: {line}")
                 continue
             key, data = line.split(":", 1)
             key = key.strip()
             data = data.strip()
-            if not key in option_bytes.keys():
+            if key not in option_bytes.keys():
                 self.logger.debug(f"Skipping key: {key}")
                 continue
             self.logger.debug(f"Processing key: {key} {data}")
@@ -71,10 +71,11 @@ class CubeProgrammer:
         return ob_correct
 
     def setOptionBytes(self, option_bytes):
-        options = []
-        for key, (value, attr) in option_bytes.items():
-            if "w" in attr:
-                options.append(f"{key}={value}")
+        options = [
+            f"{key}={value}"
+            for key, (value, attr) in option_bytes.items()
+            if "w" in attr
+        ]
         self._execute(["-ob", *options])
         return True
 
